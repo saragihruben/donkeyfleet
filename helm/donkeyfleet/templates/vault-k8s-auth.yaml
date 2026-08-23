@@ -1,0 +1,41 @@
+{{- if .Values.vaultKubernetesAuth.enabled -}}
+# Wiring for Vault's Kubernetes auth method: a ServiceAccount whose token Vault
+# uses to review other tokens, bound to system:auth-delegator. Disable this whole
+# file (vaultKubernetesAuth.enabled=false) if Vault is unused, or if you
+# authenticate to Vault another way (e.g. the standalone stack uses a token).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "donkeyfleet.vaultAuthServiceAccountName" . }}
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vault-auth
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}-vault-auth-delegator
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vault-auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "donkeyfleet.vaultAuthServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Long-lived token for the reviewer SA (k8s 1.24+ no longer auto-creates these).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "donkeyfleet.vaultAuthServiceAccountName" . }}-token
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: vault-auth
+  annotations:
+    kubernetes.io/service-account.name: {{ include "donkeyfleet.vaultAuthServiceAccountName" . }}
+type: kubernetes.io/service-account-token
+{{- end -}}

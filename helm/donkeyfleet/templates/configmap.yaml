@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+data:
+  # --- OIDC ---
+  OIDC_ISSUER: {{ .Values.config.oidc.issuer | quote }}
+  OIDC_CLIENT_ID: {{ .Values.config.oidc.clientId | quote }}
+  QUARKUS_OIDC_ROLES_SOURCE: {{ .Values.config.oidc.rolesSource | quote }}
+  QUARKUS_HTTP_PROXY_ALLOW_X_FORWARDED: {{ .Values.config.proxy.forwarding | quote }}
+
+  # --- Database ---
+  DB_URL: {{ include "donkeyfleet.databaseUrl" . | quote }}
+
+  # --- Vault (runtime cluster-credential reads) ---
+  VAULT_ADDR: {{ .Values.config.vault.address | quote }}
+  VAULT_K8S_ROLE: {{ .Values.config.vault.kubernetes.role | quote }}
+  QUARKUS_VAULT_AUTHENTICATION_KUBERNETES_AUTH_MOUNT_PATH: {{ .Values.config.vault.kubernetes.authMountPath | quote }}
+  QUARKUS_VAULT_KV_SECRET_ENGINE_MOUNT_PATH: {{ .Values.config.vault.kvSecretEngineMountPath | quote }}
+  QUARKUS_VAULT_TLS_SKIP_VERIFY: {{ .Values.config.vault.tlsSkipVerify | quote }}
+
+  # --- Reconcile / kill switch ---
+  RECONCILE_INTERVAL: {{ .Values.config.reconcile.interval | quote }}
+  PROVISIONING_POLL_INTERVAL: {{ .Values.config.reconcile.provisioningPollInterval | quote }}
+  RECONCILE_DRY_RUN: {{ .Values.config.reconcile.dryRun | quote }}
+  RECONCILE_LOCK_KEY: {{ .Values.config.reconcile.lockKey | quote }}
+  RECONCILE_DRY_RUN_UI_OVERRIDE: {{ .Values.config.reconcile.dryRunUiOverride | quote }}
+
+  # --- Reverse proxy: OIDC redirect_uri behind an ingress ---
+  QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING: {{ .Values.config.proxy.forwarding | quote }}
+  QUARKUS_HTTP_PROXY_ENABLE_FORWARDED_HOST: {{ .Values.config.proxy.forwarding | quote }}
+  QUARKUS_HTTP_PROXY_ENABLE_FORWARDED_PREFIX: {{ .Values.config.proxy.forwarding | quote }}

@@ -1,0 +1,25 @@
+DonkeyFleet ({{ include "donkeyfleet.fullname" . }}) is installed in namespace "{{ .Release.Namespace }}".
+
+Image:      {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+Dry-run:    {{ .Values.config.reconcile.dryRun }}   (writes nothing to clusters while true)
+Database:   {{ if .Values.postgres.enabled }}bundled Postgres ({{ include "donkeyfleet.postgres.fullname" . }}){{ else }}external ({{ .Values.config.database.url }}){{ end }}
+
+Reach the console:
+{{- if .Values.ingress.enabled }}
+  http(s)://{{ .Values.ingress.host }}   (via the {{ .Values.ingress.kind }} you enabled)
+{{- else }}
+  Ingress is disabled. Port-forward to try it:
+
+    kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "donkeyfleet.fullname" . }} 8080:{{ .Values.service.port }}
+
+  then open http://localhost:8080  (expose it for real with your own ingress — set ingress.*).
+{{- end }}
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "donkeyfleet.fullname" . }}
+
+{{- if not .Values.secret.create }}
+
+Reminder: this release references an existing Secret "{{ .Values.secret.existingSecret }}"
+(keys: db-username, db-password, oidc-client-secret). Make sure it exists in the namespace.
+{{- end }}

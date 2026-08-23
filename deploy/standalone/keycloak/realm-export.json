@@ -1,0 +1,64 @@
+{
+  "realm": "donkeyfleet",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "read", "description": "Read-only console access" },
+      { "name": "approve", "description": "Approve human-gated proposals" },
+      { "name": "administer", "description": "Full administrative access" }
+    ]
+  },
+  "users": [
+    {
+      "username": "donkey",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Donkey",
+      "lastName": "Operator",
+      "email": "donkey@example.com",
+      "credentials": [
+        { "type": "password", "value": "donkey", "temporary": false }
+      ],
+      "realmRoles": ["read", "approve", "administer"]
+    },
+    {
+      "username": "reader",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Read",
+      "lastName": "Only",
+      "email": "reader@example.com",
+      "credentials": [
+        { "type": "password", "value": "reader", "temporary": false }
+      ],
+      "realmRoles": ["read"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "donkeyfleet",
+      "name": "DonkeyFleet",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "donkeyfleet-local-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://host.docker.internal:8090/*",
+        "http://localhost:8090/*"
+      ],
+      "webOrigins": ["+"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://host.docker.internal:8090/*##http://localhost:8090/*"
+      }
+    }
+  ]
+}

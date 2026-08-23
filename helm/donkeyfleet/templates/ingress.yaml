@@ -1,0 +1,86 @@
+{{- if .Values.ingress.enabled -}}
+{{- if eq .Values.ingress.kind "ingress" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ required "ingress.host is required when ingress.enabled" .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "donkeyfleet.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- else if eq .Values.ingress.kind "httproute" -}}
+{{- $gwName := required "ingress.gateway.name is required when ingress.kind=httproute" .Values.ingress.gateway.name -}}
+{{- if .Values.ingress.gateway.redirectToHttps }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}-https-redirect
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $gwName }}
+      {{- with .Values.ingress.gateway.namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      sectionName: http
+  hostnames:
+    - {{ .Values.ingress.host | quote }}
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ $gwName }}
+      {{- with .Values.ingress.gateway.namespace }}
+      namespace: {{ . }}
+      {{- end }}
+      {{- with .Values.ingress.gateway.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  hostnames:
+    - {{ required "ingress.host is required when ingress.enabled" .Values.ingress.host | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "donkeyfleet.fullname" . }}
+          port: {{ .Values.service.port }}
+{{- else -}}
+{{- fail "ingress.kind must be either \"ingress\" or \"httproute\"" -}}
+{{- end -}}
+{{- end -}}

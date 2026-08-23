@@ -1,0 +1,20 @@
+{{- if .Values.vaultKubernetesAuth.appAuthDelegator -}}
+# Client-side token review: when the Vault Kubernetes auth method has no static
+# token_reviewer_jwt (token_reviewer_jwt_set=false, disable_local_ca_jwt=true), Vault reviews the
+# login token using that token itself — so the APP ServiceAccount must be allowed to create
+# TokenReviews. Bind it to system:auth-delegator. Not needed when Vault uses a static reviewer.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}-auth-delegator
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "donkeyfleet.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end -}}

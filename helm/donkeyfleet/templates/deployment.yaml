@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "donkeyfleet.fullname" . }}
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "donkeyfleet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      annotations:
+        # Roll the pod when the ConfigMap (and, if chart-managed, the Secret) changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.secret.create }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+      labels:
+        {{- include "donkeyfleet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+    spec:
+      serviceAccountName: {{ include "donkeyfleet.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: {{ include "donkeyfleet.fullname" . }}
+          env:
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "donkeyfleet.secretName" . }}
+                  key: db-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "donkeyfleet.secretName" . }}
+                  key: db-password
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "donkeyfleet.secretName" . }}
+                  key: oidc-client-secret
+            {{- with .Values.config.oidc.sessionEncryptionSecretKey }}
+            # Shared OIDC session-cookie key so every replica decrypts the same cookie.
+            - name: QUARKUS_OIDC_TOKEN_STATE_MANAGER_ENCRYPTION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "donkeyfleet.secretName" $ }}
+                  key: {{ . }}
+            {{- end }}
+            {{- if and .Values.vaultKubernetesAuth.enabled .Values.vaultKubernetesAuth.legacyToken.enabled }}
+            # Authenticate to Vault with the app SA's mounted legacy token (vaultKubernetesAuth.legacyToken).
+            - name: QUARKUS_VAULT_AUTHENTICATION_KUBERNETES_JWT_TOKEN_PATH
+              value: {{ printf "%s/token" .Values.vaultKubernetesAuth.legacyToken.mountPath | quote }}
+            {{- end }}
+          startupProbe:
+            # Flyway runs at startup; give it room before liveness can kill the pod.
+            httpGet:
+              path: /q/health/started
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp            # readOnlyRootFilesystem needs a writable /tmp
+              mountPath: /tmp
+            {{- if and .Values.vaultKubernetesAuth.enabled .Values.vaultKubernetesAuth.legacyToken.enabled }}
+            - name: vault-auth-jwt
+              mountPath: {{ .Values.vaultKubernetesAuth.legacyToken.mountPath }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if and .Values.vaultKubernetesAuth.enabled .Values.vaultKubernetesAuth.legacyToken.enabled }}
+        - name: vault-auth-jwt
+          secret:
+            secretName: {{ include "donkeyfleet.serviceAccountName" . }}-token
+            items:
+              - key: token
+                path: token
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

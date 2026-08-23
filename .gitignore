@@ -1,0 +1,6 @@
+.env
+*.local.yaml
+my-values.yaml
+*.tgz
+dist/
+

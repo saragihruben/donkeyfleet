@@ -1,0 +1,206 @@
+# DonkeyFleet Helm values.
+#
+# Install into its own namespace, for example:
+#   helm install donkeyfleet . -n donkeyfleet --create-namespace -f my-values.yaml
+#
+# Ingress is OFF by default — DonkeyFleet does not ship or require an ingress
+# controller. Expose it however your cluster does (see the `ingress` block).
+
+# -- App replicas. 1 is the design default: the reconcile loop is single-writer, serialized by a
+# PostgreSQL advisory lock, so extra pods never double-write. Set >1 only for web-UI availability
+# (the UI is stateless — OIDC session lives in an encrypted cookie, so no sticky sessions needed).
+replicaCount: 1
+
+# Deployment update strategy. Recreate (default) never runs two app versions at once — safe with
+# Flyway-at-startup and schema migrations. For replicaCount > 1 with zero-downtime rollouts use
+# RollingUpdate, but only if your migrations are backward-compatible (old + new pods briefly share
+# one schema).
+updateStrategy:
+  type: Recreate
+  # rollingUpdate:
+  #   maxUnavailable: 0
+  #   maxSurge: 1
+
+# PodDisruptionBudget — keep a pod available during voluntary disruptions (node drain). Only
+# meaningful with replicaCount > 1.
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+image:
+  repository: registry.example.com/donkeyfleet/donkeyfleet
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets, e.g. for a private registry project.
+imagePullSecrets: []
+#  - name: my-registry-pull-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Scheduling. Replaces the old hardcoded `nodeName`; empty by default so the
+# scheduler places the pod anywhere.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsUser: 185               # ubi9/openjdk-21-runtime user
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 384Mi             # fast-jar; run-java.sh derives -Xmx from this
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# ---------------------------------------------------------------------------
+# Application configuration (rendered into the ConfigMap as env for the pod).
+# Secrets never appear here — see the `secret` block.
+# ---------------------------------------------------------------------------
+config:
+  oidc:
+    issuer: "https://keycloak.example.com/realms/donkeyfleet"
+    clientId: "donkeyfleet"
+    rolesSource: accesstoken
+    # Recommended for multi-replica: name of a key in the Secret holding a >=32-char value used to
+    # encrypt the OIDC session/state cookies, so every pod uses the same key. Empty = derive the key
+    # from the client secret — already shared across pods, so single- and multi-replica both work
+    # without this. Set it anyway in production: it keeps sessions valid across an OIDC client-secret
+    # rotation (the derived key would invalidate every live cookie and log users out), and avoids
+    # Quarkus' random per-pod fallback key (single-replica only) if a usable secret is ever absent.
+    sessionEncryptionSecretKey: ""
+  vault:
+    # Leave address empty to run with Vault inactive (no cluster-credential reads).
+    address: "https://vault.example.com/"
+    kvSecretEngineMountPath: secret
+    kubernetes:
+      role: "kubernetes-donkeyfleet"
+      authMountPath: "kubernetes-donkeyfleet"
+    tlsSkipVerify: true
+  database:
+    # When postgres.enabled=true this is computed from the bundled Postgres
+    # service and can stay empty. Set it to point at an external database.
+    url: ""
+  reconcile:
+    # Full discovery cadence, including long-running baseline observation.
+    interval: 5m
+    # Safe follow-up cadence while a persisted create/job/confirm step is active.
+    provisioningPollInterval: 15s
+    dryRun: true               # M1+ safety: writes nothing to clusters
+    lockKey: "84190001"
+    dryRunUiOverride: false     # keep the one-way kill switch in production
+  # Forward proxy headers so OIDC builds redirect_uri correctly behind an ingress.
+  proxy:
+    forwarding: true
+
+# ---------------------------------------------------------------------------
+# Secret with the DB credentials and the OIDC client secret.
+# Either the chart creates it from the values below (create: true), or it
+# references an existing Secret you manage (e.g. External Secrets Operator).
+# Keys expected: db-username, db-password, oidc-client-secret.
+# ---------------------------------------------------------------------------
+secret:
+  create: false
+  existingSecret: "donkeyfleet-secrets"
+  # Used only when create: true:
+  dbUsername: ""
+  dbPassword: ""
+  oidcClientSecret: ""
+  # Optional: sync the Secret from Vault via External Secrets Operator. Requires the
+  # external-secrets.io CRDs — leave disabled if you don't run ESO. When enabled it
+  # populates the Secret named by `existingSecret` (keep create=false).
+  externalSecret:
+    enabled: false
+    refreshInterval: 1m
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    remoteKey: "secret/data/donkeyfleet/controller"
+
+# ---------------------------------------------------------------------------
+# Bundled Postgres (StatefulSet + PVC). Disable to use an external database
+# (then set config.database.url and provide creds via the Secret).
+# ---------------------------------------------------------------------------
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  database: snapmirror
+  storageClass: ""             # "" = cluster default StorageClass
+  storageSize: 50Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# Vault Kubernetes-auth wiring: a ServiceAccount whose token Vault validates,
+# plus the auth-delegator ClusterRoleBinding Vault needs to review tokens.
+# Disable if Vault is unused or you authenticate to Vault another way.
+# ---------------------------------------------------------------------------
+vaultKubernetesAuth:
+  enabled: true
+  # Name of the reviewer ServiceAccount whose token Vault uses to review login tokens. It MUST
+  # match the reviewer SA your Vault Kubernetes auth method is configured against. Empty defaults
+  # to "<release>-vault-auth"; set it (for example "vault-auth") to match an existing Vault setup
+  # so no Vault-side change is needed.
+  serviceAccountName: ""
+  # Legacy static token for the APP ServiceAccount, mounted so the app authenticates to Vault
+  # with its own identity using a non-expiring (legacy) token. Enable this when your Vault
+  # Kubernetes auth method validates legacy tokens (iss: kubernetes/serviceaccount, no audience)
+  # rather than the pod's short-lived projected token. Off by default — modern clusters use the
+  # projected token. NOTE: the Vault role must bind the APP ServiceAccount (the fullname), not the
+  # reviewer SA.
+  legacyToken:
+    enabled: false
+    mountPath: /var/run/secrets/vault-auth
+  # Grant the APP ServiceAccount system:auth-delegator (permission to create TokenReviews).
+  # REQUIRED when your Vault Kubernetes auth method reviews the login token with the CLIENT's own
+  # token — i.e. `vault read auth/<mount>/config` shows token_reviewer_jwt_set=false and
+  # disable_local_ca_jwt=true. Not needed when Vault uses a static token_reviewer_jwt (a dedicated
+  # reviewer SA reviews all logins). Off by default (least privilege).
+  appAuthDelegator: false
+
+# ---------------------------------------------------------------------------
+# Ingress — OFF by default. Two shapes are offered so you can use whichever
+# your cluster provides, or neither. No controller is bundled or assumed.
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+  # "ingress"  -> a standard networking.k8s.io/v1 Ingress
+  # "httproute" -> a Gateway API HTTPRoute (bring your own Gateway)
+  kind: ingress
+  host: "donkeyfleet.example.com"
+
+  # kind: ingress
+  ingressClassName: ""
+  annotations: {}
+  tls: []
+  #  - hosts: ["donkeyfleet.example.com"]
+  #    secretName: donkeyfleet-tls
+
+  # kind: httproute
+  gateway:
+    name: ""
+    namespace: ""
+    sectionName: ""           # https listener section on the Gateway
+    redirectToHttps: true     # also emit an http->https redirect route

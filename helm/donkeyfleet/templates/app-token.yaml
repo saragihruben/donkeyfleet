@@ -1,0 +1,15 @@
+{{- if and .Values.vaultKubernetesAuth.enabled .Values.vaultKubernetesAuth.legacyToken.enabled -}}
+# Legacy (non-expiring) token for the APP ServiceAccount, so the app authenticates to Vault's
+# Kubernetes auth method with its OWN identity when that method validates legacy tokens
+# (iss: kubernetes/serviceaccount) rather than the pod's short-lived projected token. Kubernetes
+# 1.24+ populates the token into this Secret. The Vault role must bind this SA (the fullname).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "donkeyfleet.serviceAccountName" . }}-token
+  labels:
+    {{- include "donkeyfleet.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/service-account.name: {{ include "donkeyfleet.serviceAccountName" . }}
+type: kubernetes.io/service-account-token
+{{- end -}}

@@ -1,0 +1,16 @@
+# Patterns to ignore when packaging the chart.
+.git/
+.gitignore
+.helmignore
+*.tgz
+*.tmp
+*.bak
+*.orig
+.DS_Store
+
+# Local deployment material. These directories can contain live endpoints,
+# Secret names and per-cluster values and must never enter a public chart artifact.
+helm/
+snapmirror/
+my-values.yaml
+*.local.yaml
