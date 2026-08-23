@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/branding/banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/branding/banner-bright.png">
+  <img alt="DonkeyFleet — Storage Replication Orchestration" src="assets/branding/banner-bright.png" width="100%">
+</picture>
+
 # DonkeyFleet deployment assets
 
 DonkeyFleet is a focused, volume-level controller for managing NetApp SnapMirror replication
