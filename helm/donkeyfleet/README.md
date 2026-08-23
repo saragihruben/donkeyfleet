@@ -78,21 +78,21 @@ Package once, either way:
 
 ```bash
 helm lint .
-helm package .            # -> donkeyfleet-0.3.1.tgz
+helm package .            # -> donkeyfleet-1.0.0.tgz
 ```
 
 ### Private — Harbor ("our" repo)
 
 ```bash
 helm registry login harbor.example.com
-helm push donkeyfleet-0.3.1.tgz oci://harbor.example.com/<project>/charts
+helm push donkeyfleet-1.0.0.tgz oci://harbor.example.com/<project>/charts
 ```
 
 Install (a robot account / login is needed to pull the chart, and a pull secret for the private image):
 
 ```bash
 helm install donkeyfleet oci://harbor.example.com/<project>/charts/donkeyfleet \
-  --version 0.3.1 -n donkeyfleet --create-namespace -f my-values.yaml
+  --version 1.0.0 -n donkeyfleet --create-namespace -f my-values.yaml
 ```
 
 ### Public — public OCI registry (Docker Hub or GHCR)
@@ -102,21 +102,21 @@ under your namespace:
 
 ```bash
 helm registry login registry-1.docker.io -u <your-user>
-helm push donkeyfleet-0.3.1.tgz oci://registry-1.docker.io/<your-user>
+helm push donkeyfleet-1.0.0.tgz oci://registry-1.docker.io/<your-user>
 ```
 
 Install straight from the public repo — **no `helm registry login` and no chart pull secret needed**:
 
 ```bash
 helm install donkeyfleet oci://registry-1.docker.io/<your-user>/donkeyfleet \
-  --version 0.3.1 -n donkeyfleet --create-namespace -f my-values.yaml
+  --version 1.0.0 -n donkeyfleet --create-namespace -f my-values.yaml
 ```
 
 Verify the public artifact before announcing it:
 
 ```bash
-helm show chart oci://registry-1.docker.io/<your-user>/donkeyfleet --version 0.3.1
-helm pull oci://registry-1.docker.io/<your-user>/donkeyfleet --version 0.3.1
+helm show chart oci://registry-1.docker.io/<your-user>/donkeyfleet --version 1.0.0
+helm pull oci://registry-1.docker.io/<your-user>/donkeyfleet --version 1.0.0
 ```
 
 > **The chart is not the image.** Publishing the chart publicly does *not* publish the DonkeyFleet
