@@ -79,3 +79,8 @@ Examples use placeholder endpoints and secret names. Do not commit `.env`, Kuber
 private registry credentials, Vault tokens, cluster endpoints, or FSx identifiers. Use
 `.env.example`, Kubernetes Secrets, and your platform's secret-management integration instead.
 
+## License
+
+Deployment assets in this repository are licensed under the Apache License 2.0.
+The DonkeyFleet application and container image may be distributed under separate terms.
+
