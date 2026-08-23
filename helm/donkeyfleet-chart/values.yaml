@@ -37,7 +37,9 @@ image:
 imagePullSecrets: []
 #  - name: my-registry-pull-secret
 
-nameOverride: ""
+# Preserve the public application's Kubernetes resource names even though the OCI chart artifact
+# is named donkeyfleet-chart to keep it separate from the donkeyfleet container-image repository.
+nameOverride: "donkeyfleet"
 fullnameOverride: ""
 
 # Scheduling. Replaces the old hardcoded `nodeName`; empty by default so the

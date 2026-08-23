@@ -2,6 +2,13 @@
 
 All notable changes to the public DonkeyFleet deployment assets are recorded here.
 
+## 1.0.1 — 2026-08-23
+
+- Moves the Helm OCI artifact to the dedicated `donkeyfleet-chart` repository.
+- Renames the chart artifact to `donkeyfleet-chart` while defaulting `nameOverride` to
+  `donkeyfleet`, preserving the Kubernetes resource names rendered by release `donkeyfleet`.
+- Keeps the application image independently versioned in the `donkeyfleet` repository.
+
 ## 1.0.0 — 2026-08-23
 
 First stable public Helm chart release.

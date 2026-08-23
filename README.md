@@ -18,7 +18,7 @@ source code.
 
 | Deployment | Best for | Included services |
 |---|---|---|
-| [Helm](helm/donkeyfleet/README.md) | Kubernetes and production deployments | DonkeyFleet, with optional bundled PostgreSQL |
+| [Helm](helm/donkeyfleet-chart/README.md) | Kubernetes and production deployments | DonkeyFleet, with optional bundled PostgreSQL |
 | [Standalone](deploy/standalone/README.md) | Evaluation, demos, and small installations | DonkeyFleet, PostgreSQL, Vault, and Keycloak through Docker Compose |
 
 For production, prefer the Helm chart with external PostgreSQL, Vault, and OIDC services. The
@@ -30,15 +30,15 @@ small deployment rather than a highly available control plane.
 The public OCI chart is available from Docker Hub:
 
 ```bash
-helm show chart oci://registry-1.docker.io/saragihruben29/donkeyfleet --version 1.0.0
+helm show chart oci://registry-1.docker.io/saragihruben29/donkeyfleet-chart --version 1.0.1
 ```
 
 Create a values file with your image, OIDC, Vault, database, and Secret settings, then install:
 
 ```bash
 helm install donkeyfleet \
-  oci://registry-1.docker.io/saragihruben29/donkeyfleet \
-  --version 1.0.0 \
+  oci://registry-1.docker.io/saragihruben29/donkeyfleet-chart \
+  --version 1.0.1 \
   --namespace donkeyfleet \
   --create-namespace \
   --values my-values.yaml

@@ -78,21 +78,21 @@ Package once, either way:
 
 ```bash
 helm lint .
-helm package .            # -> donkeyfleet-1.0.0.tgz
+helm package .            # -> donkeyfleet-chart-1.0.1.tgz
 ```
 
 ### Private — Harbor ("our" repo)
 
 ```bash
 helm registry login harbor.example.com
-helm push donkeyfleet-1.0.0.tgz oci://harbor.example.com/<project>/charts
+helm push donkeyfleet-chart-1.0.1.tgz oci://harbor.example.com/<project>/charts
 ```
 
 Install (a robot account / login is needed to pull the chart, and a pull secret for the private image):
 
 ```bash
-helm install donkeyfleet oci://harbor.example.com/<project>/charts/donkeyfleet \
-  --version 1.0.0 -n donkeyfleet --create-namespace -f my-values.yaml
+helm install donkeyfleet oci://harbor.example.com/<project>/charts/donkeyfleet-chart \
+  --version 1.0.1 -n donkeyfleet --create-namespace -f my-values.yaml
 ```
 
 ### Public — public OCI registry (Docker Hub or GHCR)
@@ -102,21 +102,21 @@ under your namespace:
 
 ```bash
 helm registry login registry-1.docker.io -u <your-user>
-helm push donkeyfleet-1.0.0.tgz oci://registry-1.docker.io/<your-user>
+helm push donkeyfleet-chart-1.0.1.tgz oci://registry-1.docker.io/<your-user>
 ```
 
 Install straight from the public repo — **no `helm registry login` and no chart pull secret needed**:
 
 ```bash
-helm install donkeyfleet oci://registry-1.docker.io/<your-user>/donkeyfleet \
-  --version 1.0.0 -n donkeyfleet --create-namespace -f my-values.yaml
+helm install donkeyfleet oci://registry-1.docker.io/<your-user>/donkeyfleet-chart \
+  --version 1.0.1 -n donkeyfleet --create-namespace -f my-values.yaml
 ```
 
 Verify the public artifact before announcing it:
 
 ```bash
-helm show chart oci://registry-1.docker.io/<your-user>/donkeyfleet --version 1.0.0
-helm pull oci://registry-1.docker.io/<your-user>/donkeyfleet --version 1.0.0
+helm show chart oci://registry-1.docker.io/<your-user>/donkeyfleet-chart --version 1.0.1
+helm pull oci://registry-1.docker.io/<your-user>/donkeyfleet-chart --version 1.0.1
 ```
 
 > **The chart is not the image.** Publishing the chart publicly does *not* publish the DonkeyFleet
@@ -261,6 +261,7 @@ behind the proxy — leave it on behind any ingress that terminates TLS.
 | `config.reconcile.dryRun` | `true` | Safety: writes nothing to clusters while true. |
 | `config.reconcile.dryRunUiOverride` | `false` | Keep the one-way kill switch in production. |
 | `nodeSelector` / `tolerations` / `affinity` | `{}` | Scheduling (replaces the old hardcoded node). |
+| `nameOverride` | `"donkeyfleet"` | Preserves DonkeyFleet resource names while the OCI artifact is named `donkeyfleet-chart`. |
 | `fullnameOverride` | `""` | Set to `snapmirror-controller` to keep the pre-chart resource names. |
 | `replicaCount` | `1` | App replicas. >1 for UI availability only — reconcile stays single-writer. |
 | `updateStrategy.type` | `Recreate` | `RollingUpdate` for zero-downtime multi-replica (needs backward-compatible migrations). |
