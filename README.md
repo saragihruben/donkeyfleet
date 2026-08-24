@@ -84,3 +84,5 @@ private registry credentials, Vault tokens, cluster endpoints, or FSx identifier
 Deployment assets in this repository are licensed under the Apache License 2.0.
 The DonkeyFleet application and container image may be distributed under separate terms.
 
+Please visit https://donkeyfleet.com for detailed documentation.
+
