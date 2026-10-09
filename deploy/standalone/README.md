@@ -82,7 +82,7 @@ Build the image and push it to a registry your recipients can reach. From the **
 (where the `Dockerfile` is):
 
 ```bash
-docker build -t <your-dockerhub-user>/donkeyfleet:1.0.0 .
+docker build -t <your-dockerhub-user>/donkeyfleet:1.3.1 .
 ```
 
 ```bash
@@ -90,10 +90,10 @@ docker login
 ```
 
 ```bash
-docker push <your-dockerhub-user>/donkeyfleet:1.0.0
+docker push <your-dockerhub-user>/donkeyfleet:1.3.1
 ```
 
-Recipients then set `DONKEYFLEET_IMAGE=<your-dockerhub-user>/donkeyfleet:1.0.0` and run
+Recipients then set `DONKEYFLEET_IMAGE=<your-dockerhub-user>/donkeyfleet:1.3.1` and run
 `docker compose up`.
 
 > **Before you push to a *public* repo, know this:** the image is **JVM bytecode**, which
@@ -125,7 +125,7 @@ Recipients authenticate once before pulling:
 docker login -u <your-dockerhub-user>
 ```
 
-then set `DONKEYFLEET_IMAGE=<your-dockerhub-user>/donkeyfleet:1.0.0` and run `docker compose up`.
+then set `DONKEYFLEET_IMAGE=<your-dockerhub-user>/donkeyfleet:1.3.1` and run `docker compose up`.
 (The Helm chart's `imagePullSecrets` is the Kubernetes equivalent of that login.)
 
 ## What to put in the distribution bundle

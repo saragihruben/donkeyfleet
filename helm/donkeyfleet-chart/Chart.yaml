@@ -3,9 +3,9 @@ name: donkeyfleet-chart
 description: DonkeyFleet — SnapMirror replication controller for on-prem ONTAP and AWS FSx for ONTAP
 type: application
 # Chart version — bump on every chart change.
-version: 1.0.1
+version: 1.1.2
 # Application version — the DonkeyFleet image tag this chart defaults to.
-appVersion: "1.0.0"
+appVersion: "1.3.1"
 kubeVersion: ">=1.25.0-0"
 keywords:
   - donkeyfleet

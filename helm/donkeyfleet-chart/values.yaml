@@ -30,7 +30,7 @@ podDisruptionBudget:
 
 image:
   repository: registry.example.com/donkeyfleet/donkeyfleet
-  tag: "1.0.0"
+  tag: "1.3.1"
   pullPolicy: IfNotPresent
 
 # Image pull secrets, e.g. for a private registry project.
@@ -54,7 +54,7 @@ podSecurityContext:
     type: RuntimeDefault
 
 securityContext:
-  runAsUser: 185               # ubi9/openjdk-21-runtime user
+  runAsUser: 185               # image runtime user (uid 185)
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
   capabilities:
@@ -63,10 +63,27 @@ securityContext:
 resources:
   requests:
     cpu: 100m
-    memory: 256Mi
+    memory: 512Mi
   limits:
     cpu: "1"
-    memory: 384Mi             # fast-jar; run-java.sh derives -Xmx from this
+    # JVM fast-jar image. Total RSS = heap (jvm.maxRamPercentage below) + non-heap: metaspace,
+    # JIT code cache, thread stacks, Netty/Vert.x direct buffers, the Agroal pool. The old 384Mi
+    # limit OOMKilled this feature set within hours; 640Mi (heap ~320Mi at 50%) leaves headroom and
+    # matches the snapmirror-controller line. A native image can run far lower.
+    memory: 640Mi
+
+# JVM heap tuning for the fast-jar image. run-java.sh turns maxRamPercentage into
+# -XX:MaxRAMPercentage. The base image default is 80, which at a small limit lets the heap crowd
+# out non-heap memory and the kernel OOMKills the pod. 50 caps the heap at half the limit, leaving
+# the other half for non-heap. Ignored by a native image (no JVM).
+jvm:
+  maxRamPercentage: 50
+
+# Extra environment variables for the app container (a raw list of name/value maps). Use for
+# arbitrary Quarkus config (QUARKUS_*) or JVM flags via JAVA_OPTS_APPEND.
+extraEnv: []
+#  - name: JAVA_OPTS_APPEND
+#    value: "-XX:+UseSerialGC"
 
 service:
   type: ClusterIP

@@ -2,6 +2,27 @@
 
 All notable changes to the public DonkeyFleet deployment assets are recorded here.
 
+## 1.1.2 — 2026-10-09
+
+- Bumps the default application version (`appVersion`) and image tag to `1.3.1`, picking up the 1.3.1
+  application release: per-SVM-pair scope filters, the "Protection established" notification, and the
+  Netty, Jackson, and base-image security fixes.
+
+## 1.1.1 — 2026-09-22
+
+- Lowers the default container memory limit from `768Mi` to `640Mi` (requests unchanged at `512Mi`);
+  the heap stays capped near `320Mi` through `jvm.maxRamPercentage: 50`, trimming the footprint while
+  keeping ample non-heap headroom.
+
+## 1.1.0 — 2026-09-21
+
+- Fixes pods being OOMKilled at the default memory limit. Adds a `jvm.maxRamPercentage` value
+  (default `50`, rendered as `-XX:MaxRAMPercentage=50`) so the heap leaves room for non-heap memory,
+  and raises the default container memory to a `768Mi` limit / `512Mi` request.
+- Adds an `extraEnv` passthrough for arbitrary container environment variables (for example JVM flags
+  via `JAVA_OPTS_APPEND`).
+- Bumps the default application version (`appVersion`) to `1.3.0`.
+
 ## 1.0.1 — 2026-08-23
 
 - Moves the Helm OCI artifact to the dedicated `donkeyfleet-chart` repository.

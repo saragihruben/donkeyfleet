@@ -73,6 +73,15 @@ spec:
             - name: QUARKUS_VAULT_AUTHENTICATION_KUBERNETES_JWT_TOKEN_PATH
               value: {{ printf "%s/token" .Values.vaultKubernetesAuth.legacyToken.mountPath | quote }}
             {{- end }}
+            {{- if .Values.jvm.maxRamPercentage }}
+            # Heap ceiling as a % of the container memory limit (run-java.sh -> -XX:MaxRAMPercentage),
+            # leaving room for non-heap so the pod is not OOMKilled.
+            - name: JAVA_MAX_MEM_RATIO
+              value: {{ .Values.jvm.maxRamPercentage | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           startupProbe:
             # Flyway runs at startup; give it room before liveness can kill the pod.
             httpGet:

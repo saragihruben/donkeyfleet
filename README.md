@@ -30,7 +30,7 @@ small deployment rather than a highly available control plane.
 The public OCI chart is available from Docker Hub:
 
 ```bash
-helm show chart oci://registry-1.docker.io/saragihruben29/donkeyfleet-chart --version 1.0.1
+helm show chart oci://registry-1.docker.io/saragihruben29/donkeyfleet-chart --version 1.1.2
 ```
 
 Create a values file with your image, OIDC, Vault, database, and Secret settings, then install:
@@ -38,7 +38,7 @@ Create a values file with your image, OIDC, Vault, database, and Secret settings
 ```bash
 helm install donkeyfleet \
   oci://registry-1.docker.io/saragihruben29/donkeyfleet-chart \
-  --version 1.0.1 \
+  --version 1.1.2 \
   --namespace donkeyfleet \
   --create-namespace \
   --values my-values.yaml
